@@ -33,8 +33,10 @@
                     <!-- Personal Access Tokens -->
                     <table class="table table-borderless m-b-none" v-if="tokens.length > 0">
                         <thead>
-                            <th>Name</th>
-                            <th></th>
+                            <tr>
+                                <th>Name</th>
+                                <th></th>
+                            </tr>
                         </thead>
 
                         <tbody>
@@ -258,7 +260,7 @@
              * Determine if the given scope has been assigned to the token.
              */
             scopeIsAssigned(scope) {
-                return _.indexOf(this.form.scopes, scope) > 0;
+                return _.indexOf(this.form.scopes, scope) >= 0;
             },
 
             /**
