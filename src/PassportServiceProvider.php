@@ -14,8 +14,6 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Bridge\PersonalAccessGrant;
 use Laravel\Passport\Bridge\RefreshTokenRepository;
 use Laravel\Passport\Guards\TokenGuard;
-use Lcobucci\JWT\Configuration;
-use Lcobucci\JWT\Parser;
 use League\OAuth2\Server\AuthorizationServer;
 use League\OAuth2\Server\CryptKey;
 use League\OAuth2\Server\Grant\AuthCodeGrant;
@@ -95,8 +93,8 @@ class PassportServiceProvider extends ServiceProvider
         Passport::setClientUuids($this->app->make(Config::class)->get('passport.client_uuids', false));
 
         $this->registerAuthorizationServer();
+        $this->registerClientRepository();
         $this->registerResourceServer();
-        $this->registerJWTParser();
         $this->registerGuard();
     }
 
@@ -224,6 +222,20 @@ class PassportServiceProvider extends ServiceProvider
     }
 
     /**
+     * Register the client repository.
+     *
+     * @return void
+     */
+    protected function registerClientRepository()
+    {
+        $this->app->singleton(ClientRepository::class, function ($container) {
+            $config = $container->make('config')->get('passport.personal_access_client');
+
+            return new ClientRepository($config['id'] ?? null, $config['secret'] ?? null);
+        });
+    }
+
+    /**
      * Register the resource server.
      *
      * @return void
@@ -253,18 +265,6 @@ class PassportServiceProvider extends ServiceProvider
         }
 
         return new CryptKey($key, null, false);
-    }
-
-    /**
-     * Register the JWT Parser.
-     *
-     * @return void
-     */
-    protected function registerJWTParser()
-    {
-        $this->app->singleton(Parser::class, function () {
-            return Configuration::forUnsecuredSigner()->parser();
-        });
     }
 
     /**
