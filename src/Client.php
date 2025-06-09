@@ -51,9 +51,11 @@ class Client extends Model
     /**
      * The temporary plain-text client secret.
      *
+     * This is only available during the request that created the client.
+     *
      * @var string|null
      */
-    protected $plainSecret;
+    public $plainSecret;
 
     /**
      * Bootstrap the model and its traits.
