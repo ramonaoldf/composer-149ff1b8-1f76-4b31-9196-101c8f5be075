@@ -82,7 +82,7 @@ class Passport
     /**
      * The storage location of the encryption keys.
      */
-    public static string $keyPath;
+    public static ?string $keyPath = null;
 
     /**
      * The access token entity class name.
@@ -404,7 +404,7 @@ class Passport
     {
         $file = ltrim($file, '/\\');
 
-        return static::$keyPath
+        return isset(static::$keyPath)
             ? rtrim(static::$keyPath, '/\\').DIRECTORY_SEPARATOR.$file
             : storage_path($file);
     }
