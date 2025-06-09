@@ -2,6 +2,101 @@
 
 ## General Notes
 
+## Upgrading To 13.0 From 12.x
+
+### Minimum PHP Version
+
+PR: https://github.com/laravel/passport/pull/1734, https://github.com/laravel/passport/pull/1783
+
+PHP 8.2 is now the minimum required version.
+
+### Minimum Laravel Version
+
+PR: https://github.com/laravel/passport/pull/1757, https://github.com/laravel/passport/pull/1783, https://github.com/laravel/passport/pull/1797 
+
+Laravel 11.35 is now the minimum required version.
+
+### OAuth2 Server
+
+PR: https://github.com/laravel/passport/pull/1734
+
+The `league/oauth2-server` Composer package which is utilized internally by Passport has been updated to 9.0, which adds additional types to method signatures. To ensure your application is compatible, you should review this package's complete [changelog](https://github.com/thephpleague/oauth2-server/blob/master/CHANGELOG.md#900---released-2024-05-13). 
+
+### Headless
+
+PR: https://github.com/laravel/passport/pull/1771
+
+Passport's views were not rendering properly for several release cycles. Passport is now a headless OAuth2 library. If you would like a frontend implementation of Laravel Passport's OAuth features that are already completed for you, you should use an [application starter kit](https://laravel.com/docs/11.x/starter-kits).
+
+All the authorization view's rendering logic may be customized using the appropriate methods available via the `Laravel\Passport\Passport` class. Typically, you should call these methods within the `boot` method of your application's `App\Providers\AppServiceProvider` class. Passport will take care of defining the routes that return these views:
+
+    public function boot(): void
+    {
+        Passport::authorizationView('auth.oauth.authorize');
+    }
+
+### Identify Clients by UUIDs
+
+PR: https://github.com/laravel/passport/pull/1764
+
+By default, Passport now uses UUIDs to identify clients. You may keep using incremental integer IDs by setting `Passport::$clientUuids` to `false` within the `boot` method of your application's `App\Providers\AppServiceProvider` class:
+
+    public function boot(): void
+    {
+        Passport::$clientUuids = false;
+    }
+
+As a consequence of this change, the `'passport.client_uuids'` configuration property has been removed, as well as the `Passport::clientUuids()` and `Passport::setClientUuids()` methods.
+
+### Client Secrets Hashed by Default
+
+PR: https://github.com/laravel/passport/pull/1745
+
+Passport now always hashes client secrets using Laravel's `Hash` facade. If you are currently storing your client secrets in plain text, you may invoke the `passport:hash` Artisan command to hash all of your existing client secrets:
+
+    php artisan passport:hash
+
+In light of this change, the `Passport::$hashesClientSecrets` property and `Passport::hashClientSecrets()` method has been removed.
+
+### The User's Token Instance
+
+PR: https://github.com/laravel/passport/pull/1755
+
+When authenticating users via bearer tokens, the `User` model's `token` method now returns an instance of `Laravel\Passport\AccessToken` class instead of `Laravel\Passport\Token`.
+
+### Renamed Middlewares
+
+PR: https://github.com/laravel/passport/pull/1792, https://github.com/laravel/passport/pull/1794
+
+The following Passport's middlewares have been renamed to better reflect their functionality:
+
+* `Laravel\Passport\Http\Middleware\CheckScopes` class has been renamed to `CheckToken`.
+* `Laravel\Passport\Http\Middleware\CheckForAnyScope` class has been renamed to `CheckTokenForAnyScope`.
+* `Laravel\Passport\Http\Middleware\CheckClientCredentials` class has been renamed to `CheckToken`.
+* `Laravel\Passport\Http\Middleware\CheckClientCredentialsForAnyScope` class has been renamed to `CheckTokenForAnyScope`.
+* `Laravel\Passport\Http\Middleware\CheckCredentials` abstract class has been renamed to `ValidateToken`.
+
+### Personal Access Client Table and Model Removal
+
+PR: https://github.com/laravel/passport/pull/1749, https://github.com/laravel/passport/pull/1780
+
+Passport's `oauth_personal_access_clients` table has been redundant and unnecessary for several release cycles. Therefore, this release of Passport no longer interacts with this table or its corresponding model. If you wish, you may create a migration that drops this table:
+
+    Schema::drop('oauth_personal_access_clients');
+
+In addition, the `passport.personal_access_client` configuration value, `Laravel\Passport\PersonalAccessClient` model, `Passport::$personalAccessClientModel` property, `Passport::usePersonalAccessClientModel()`, `Passport::personalAccessClientModel()`, and `Passport::personalAccessClient()` methods have been removed.
+
+### JSON API Deprecation
+
+PR: https://github.com/laravel/passport/pull/1778
+
+The JSON API provided by Passport has been deprecated. If you need to continue using the deprecated JSON API, you can do so by setting `Passport::$registersJsonApiRoutes` to `true` within the `boot` method of your application’s `App\Providers\AppServiceProvider` class. Alternatively, you may also copy the relevant routes and controllers into your application as needed:
+
+    public function boot(): void
+    {
+        Passport::$registersJsonApiRoutes = true;
+    }
+
 ## Upgrading To 12.0 From 11.x
 
 ### Migration Changes
@@ -13,6 +108,8 @@ php artisan vendor:publish --tag=passport-migrations
 ```
 
 ### Password Grant Type
+
+PR: https://github.com/laravel/passport/pull/1715
 
 The password grant type is disabled by default. You may enable it by calling the `enablePasswordGrant` method in the `boot` method of your application's `App\Providers\AppServiceProvider` class:
 

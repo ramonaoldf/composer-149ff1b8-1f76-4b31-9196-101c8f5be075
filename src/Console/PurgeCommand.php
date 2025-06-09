@@ -4,7 +4,7 @@ namespace Laravel\Passport\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Laravel\Passport\Passport;
 use Symfony\Component\Console\Attribute\AsCommand;
 
@@ -31,21 +31,22 @@ class PurgeCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
         $revoked = $this->option('revoked') || ! $this->option('expired');
 
         $expired = $this->option('expired') || ! $this->option('revoked')
-            ? Carbon::now()->subHours($this->option('hours'))
+            ? Date::now()->subHours($this->option('hours'))
             : false;
 
-        $constraint = fn (Builder $query) => $query
+        $constraint = fn (Builder $query): Builder => $query
             ->when($revoked, fn () => $query->orWhere('revoked', true))
             ->when($expired, fn () => $query->orWhere('expires_at', '<', $expired));
 
-        Passport::token()->where($constraint)->delete();
-        Passport::authCode()->where($constraint)->delete();
-        Passport::refreshToken()->where($constraint)->delete();
+        Passport::token()->newQuery()->where($constraint)->delete();
+        Passport::authCode()->newQuery()->where($constraint)->delete();
+        Passport::refreshToken()->newQuery()->where($constraint)->delete();
+        Passport::deviceCode()->newQuery()->where($constraint)->delete();
 
         $this->components->info(sprintf('Purged %s.', implode(' and ', array_filter([
             $revoked ? 'revoked items' : null,
