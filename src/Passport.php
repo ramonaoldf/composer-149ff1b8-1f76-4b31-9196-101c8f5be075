@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use DateInterval;
 use DateTimeInterface;
 use Illuminate\Contracts\Encryption\Encrypter;
-use Illuminate\Support\Facades\Route;
 use League\OAuth2\Server\ResourceServer;
 use Mockery;
 use Psr\Http\Message\ServerRequestInterface;
@@ -37,15 +36,6 @@ class Passport
     ];
 
     /**
-     * The date when access tokens expire.
-     *
-     * @var \DateTimeInterface|null
-     *
-     * @deprecated Will be removed in the next major Passport release.
-     */
-    public static $tokensExpireAt;
-
-    /**
      * The interval when access tokens expire.
      *
      * @var \DateInterval|null
@@ -55,27 +45,9 @@ class Passport
     /**
      * The date when refresh tokens expire.
      *
-     * @var \DateTimeInterface|null
-     *
-     * @deprecated Will be removed in the next major Passport release.
-     */
-    public static $refreshTokensExpireAt;
-
-    /**
-     * The date when refresh tokens expire.
-     *
      * @var \DateInterval|null
      */
     public static $refreshTokensExpireIn;
-
-    /**
-     * The date when personal access tokens expire.
-     *
-     * @var \DateTimeInterface|null
-     *
-     * @deprecated Will be removed in the next major Passport release.
-     */
-    public static $personalAccessTokensExpireAt;
 
     /**
      * The date when personal access tokens expire.
@@ -202,31 +174,6 @@ class Passport
     }
 
     /**
-     * Binds the Passport routes into the controller.
-     *
-     * @param  callable|null  $callback
-     * @param  array  $options
-     * @return void
-     */
-    public static function routes($callback = null, array $options = [])
-    {
-        $callback = $callback ?: function ($router) {
-            $router->all();
-        };
-
-        $defaultOptions = [
-            'prefix' => 'oauth',
-            'namespace' => '\Laravel\Passport\Http\Controllers',
-        ];
-
-        $options = array_merge($defaultOptions, $options);
-
-        Route::group($options, function ($router) use ($callback) {
-            $callback(new RouteRegistrar($router));
-        });
-    }
-
-    /**
      * Set the default scope(s). Multiple scopes may be an array or specified delimited by spaces.
      *
      * @param  array|string  $scope
@@ -308,7 +255,6 @@ class Passport
             return static::$tokensExpireIn ?? new DateInterval('P1Y');
         }
 
-        static::$tokensExpireAt = $date;
         static::$tokensExpireIn = Carbon::now()->diff($date);
 
         return new static;
@@ -326,7 +272,6 @@ class Passport
             return static::$refreshTokensExpireIn ?? new DateInterval('P1Y');
         }
 
-        static::$refreshTokensExpireAt = $date;
         static::$refreshTokensExpireIn = Carbon::now()->diff($date);
 
         return new static;
@@ -344,7 +289,6 @@ class Passport
             return static::$personalAccessTokensExpireIn ?? new DateInterval('P1Y');
         }
 
-        static::$personalAccessTokensExpireAt = $date;
         static::$personalAccessTokensExpireIn = Carbon::now()->diff($date);
 
         return new static;
@@ -390,11 +334,9 @@ class Passport
      */
     public static function actingAs($user, $scopes = [], $guard = 'api')
     {
-        $token = Mockery::mock(self::tokenModel())->shouldIgnoreMissing(false);
+        $token = app(self::tokenModel());
 
-        foreach ($scopes as $scope) {
-            $token->shouldReceive('can')->with($scope)->andReturn(true);
-        }
+        $token->scopes = $scopes;
 
         $user->withAccessToken($token);
 
@@ -414,9 +356,10 @@ class Passport
      *
      * @param  \Laravel\Passport\Client  $client
      * @param  array  $scopes
+     * @param  string  $guard
      * @return \Laravel\Passport\Client
      */
-    public static function actingAsClient($client, $scopes = [])
+    public static function actingAsClient($client, $scopes = [], $guard = 'api')
     {
         $token = app(self::tokenModel());
 
@@ -439,6 +382,10 @@ class Passport
         $mock->shouldReceive('find')->andReturn($token);
 
         app()->instance(TokenRepository::class, $mock);
+
+        app('auth')->guard($guard)->setClient($client);
+
+        app('auth')->shouldUse($guard);
 
         return $client;
     }
